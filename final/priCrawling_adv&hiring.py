@@ -22,7 +22,7 @@ text.encoding='ms949'
 
 soup = BeautifulSoup(text.text,"html.parser")
 # TODO
-target_value = ' '
+target_value = '팔고사고'
 matching_tr_elements = []
 
 tr_elements = soup.find_all('tr')
@@ -41,7 +41,7 @@ try:
             print("No <a> tag found inside the <td> element.")
     myInfo = {'title':title,'content':content}
     myDF = pd.DataFrame(myInfo)
-    # print(myDF)
-    # advDF.to_csv("nya.csv",index=False, encoding='utf-8-sig')
+    print(myDF)
+    myDF.to_csv("nya.csv",index=False, encoding='utf-8-sig')
 except:
     pass

@@ -6,38 +6,30 @@ title = []
 contents = []
 artist = []
 date = []
-imgs = []
+location = []
+region = []
+img = []
 
 
 def doGet(ahref):
-    if ahref == '/archives/20230719f':
-        print("Skipping /archives/20230806a")
-        return
+    error = []
     try:
         pcontent = []
         pimg = []
         response = requests.get(f"https://neolook.com{ahref}")
-        if response.status_code != 200:
-            print(f"Error: {response.status_code} - Failed to get content from {ahref}")
-            return
-
         soup = BeautifulSoup(response.text, "html.parser", from_encoding='cp949')
 
         aDate = soup.select_one(
             'body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > h2 > span:nth-child(3)')
-        date.append(aDate.text)
-
+        aDate = aDate.text
         aTitle = soup.select_one(
             'body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > h1')
-        title.append(aTitle.text)
-
         aArtist = soup.select_one('body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > h2 > span:nth-child(1)')
-        artist.append(aArtist.text)
+        aArtist = aArtist.text
         for p in soup.find_all('p'):
             if 'class' not in p.attrs:
                 pcontent.append(p.get_text())
-        merged_text = '\n'.join(pcontent)
-        contents.append(merged_text)
+        merged_content = '\n'.join(pcontent)
 
         for i in soup.find_all('img'):
             src = i.get('src')
@@ -45,12 +37,31 @@ def doGet(ahref):
                 continue
             pimg.append(f'https://neolook.com{src}')
         merged_img = '\n'.join(pimg)
-        imgs.append(merged_img)
+        for i in range(10,21):
+            aRegion = soup.select_one(
+                f"body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > p:nth-child({i}) > span:nth-child(3)")
+            if aRegion:
+                aRegion = aRegion.text
+            aLocation = soup.select_one(
+                f'body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > p:nth-child({i}) > span:nth-child(1)')
+            if aLocation:
+                aLocation = aLocation.text
 
-    except requests.exceptions.RequestException as req_err:
-        print(f"Request error occurred while crawling {ahref}: {req_err}")
-    except Exception as e:
-        print(f"Error while crawling {ahref}: {e}")
+    except requests.exceptions.RequestException:
+        error.append('err0r1')
+    except Exception:
+        error.append('err0r2')
+    finally:
+        if error is not None and len(error) == 0:
+            title.append(aTitle)
+            contents.append(merged_content)
+            artist.append(aArtist)
+            date.append(aDate)
+            location.append(aLocation)
+            region.append(aRegion)
+            img.append(merged_img)
+        else:
+            error = None
 
 
 text = requests.get("https://neolook.com/archives")
@@ -75,7 +86,7 @@ if div_element:
                 # print(href_link)
                 doGet(href_link)
                 count+=1
-                if count >= 11:
+                if count >= 10:
                     break
             else:
                 continue
@@ -83,18 +94,18 @@ if div_element:
         print("no ul tag")
 else:
     print("no such div tag")
-# print('title:', len(title))
-# print('artist:', len(artist))
-# print('date:', len(date))
-# print('contents:', len(contents))
-# print('imgs:', len(imgs))
+# print(len(title))
+# print(len(artist))
+# print(len(date))
+# print(len(contents))
+# print(len(location))
+# print(len(region))
 # print(date)
-# print(artist)
-myInfo = {'title': title, 'artist': artist, 'date': date, 'content': contents, 'img': imgs}
-myDF = pd.DataFrame(myInfo)
 
+myInfo ={'title':title,'artist':artist,'date':date,'region':region,'location':location,'content':contents,'img':img}
+myDF = pd.DataFrame(myInfo)
 myDF['content'] = myDF['content'].apply(lambda x: x[0].strip() if isinstance(x, list) else x)
 myDF['content'] = myDF['content'].apply(lambda x: x.strip()).apply(cleaned)
 myDF[['start_date', 'end_date']] = myDF['date'].apply(getDates).apply(pd.Series)
 myDF.drop(columns=['date'], inplace=True)
-print(myDF.head(2))
+# print(myDF.head(2))
