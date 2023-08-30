@@ -1,15 +1,17 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-from preProcessing import getDates,cleaned
+from final.preProcessing import getDates,cleaned
 title = []
 contents = []
 date = []
 img = []
+cate = []
 def doGet(ahref):
     error = []
     try:
         pimg = []
+        pcontent = []
         response = requests.get(f"https://neolook.com{ahref}")
         soup = BeautifulSoup(response.text, "html.parser", from_encoding='cp949')
 
@@ -30,19 +32,11 @@ def doGet(ahref):
                 continue
             pimg.append(f'https://neolook.com{src}')
         merged_img = '\n'.join(pimg)
-        aContent = soup.select_one("body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document")
-        aContent = aContent.text
-        # for i in range(8,20):
-        #     aRegion = soup.select_one(
-        #         f"body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > p:nth-child({i}) > span:nth-child(3)")
-        #     if aRegion:
-        #         aRegion = aRegion.text
-        #
-        #     aLocation = soup.select_one(
-        #         f"body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > p:nth-child({i}) > span:nth-child(1)")
-        #     if aLocation:
-        #         aLocation = aLocation.text
-        #         print(aLocation)
+
+        for p in soup.find_all('p'):
+            if 'class' not in p.attrs:
+                pcontent.append(p.get_text())
+        merged_text = '\n'.join(pcontent)
     except requests.exceptions.RequestException:
         error.append('err0r1')
     except Exception:
@@ -50,9 +44,10 @@ def doGet(ahref):
     finally:
         if error is not None and len(error) == 0:
             title.append(aTitle)
-            contents.append(aContent)
+            contents.append(merged_text)
             date.append(aDate)
             img.append(merged_img)
+            cate.append("단체전")
         else:
             error = None
 
@@ -88,17 +83,11 @@ if div_element:
         print("no ul tag")
 else:
     print("no such div tag")
-# print(len(title))
-# print(len(date))
-# print(len(contents))
-# print(len(location))
-# print(len(region))
-# #
-myInfo ={'title':title,'date':date,'content':contents,'img':img}
+
+#
+myInfo ={'title':title,'date':date,'content':contents,'img':img,'cate':cate}
 myDF = pd.DataFrame(myInfo)
-# myDF['content'] = myDF['content'].apply(lambda x: x[0].strip() if isinstance(x, list) else x)
-# myDF['content'] = myDF['content'].apply(lambda x: x.strip()).apply(cleaned)
+myDF['content'] = myDF['content'].apply(lambda x: x[0].strip() if isinstance(x, list) else x)
+myDF['content'] = myDF['content'].apply(lambda x: x.strip()).apply(cleaned)
 myDF[['start_date', 'end_date']] = myDF['date'].apply(getDates).apply(pd.Series)
 myDF.drop(columns=['date'], inplace=True)
-# myDF.to_csv('upso.csv',index=False, encoding='utf-8-sig')
-# print(myDF.head(2))

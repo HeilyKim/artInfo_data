@@ -5,7 +5,7 @@ import pandas as pd
 
 title = []
 content = []
-
+cate = []
 def doGet(ahref):
     text = requests.get(f"https://neolook.com/zb/{ahref}")
     text.encoding = 'ms949'
@@ -14,6 +14,7 @@ def doGet(ahref):
     title.append(aTitle.text)
     aContent = soup.select_one('td.view-content')
     content.append(aContent.text)
+    cate.append(target_value)
 
 
 
@@ -22,7 +23,7 @@ text.encoding='ms949'
 
 soup = BeautifulSoup(text.text,"html.parser")
 # TODO
-target_value = '팔고사고'
+target_value = '광고홍보'
 matching_tr_elements = []
 
 tr_elements = soup.find_all('tr')
@@ -39,9 +40,7 @@ try:
             doGet(link)
         else:
             print("No <a> tag found inside the <td> element.")
-    myInfo = {'title':title,'content':content}
+    myInfo = {'title':title,'content':content,'cate':cate}
     myDF = pd.DataFrame(myInfo)
-    print(myDF)
-    myDF.to_csv("nya.csv",index=False, encoding='utf-8-sig')
 except:
     pass

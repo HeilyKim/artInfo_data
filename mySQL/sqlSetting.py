@@ -1,13 +1,13 @@
 import mysql.connector
-
+from final.공모 import myDF
 mydb = mysql.connector.connect(
-    host="192.168.0.215",
+    host="192.168.0.4",
     user="art",
     password="1234",
     database="art"
 )
 
-cursor = mydb.cursor()
+
 # exhibitions = ("""
 # CREATE TABLE exhibitions_board (exhibition_idx INT AUTO_INCREMENT PRIMARY KEY
 # ,exhibition_title VARCHAR(50) NOT NULL
@@ -24,24 +24,44 @@ cursor = mydb.cursor()
 # ,CONSTRAINT CHECK (exhibition_category IN ('개인전', '단체전')))
 # """)
 # cursor.execute(exhibitions)
-exhibitions_trigger = ("""
-CREATE TRIGGER set_exhibition_status
-BEFORE INSERT ON exhibitions
-FOR EACH ROW
-BEGIN
-    DECLARE current_datetime DATETIME;
-    SET current_datetime = NOW();
+# exhibitions_trigger = ("""
+# CREATE TRIGGER set_exhibition_status
+# BEFORE INSERT ON exhibitions
+# FOR EACH ROW
+# BEGIN
+#     DECLARE current_datetime DATETIME;
+#     SET current_datetime = NOW();
+#
+#     IF current_datetime < NEW.exhibition_start THEN
+#         SET NEW.exhibition_status = '예정';
+#     ELSEIF current_datetime > NEW.exhibition_end THEN
+#         SET NEW.exhibition_status = '종료';
+#     ELSE
+#         SET NEW.exhibition_status = '진행';
+#     END IF;
+# END;
+# """)
 
-    IF current_datetime < NEW.exhibition_start THEN
-        SET NEW.exhibition_status = '예정';
-    ELSEIF current_datetime > NEW.exhibition_end THEN
-        SET NEW.exhibition_status = '종료';
-    ELSE
-        SET NEW.exhibition_status = '진행';
-    END IF;
-END;
-""")
-cursor.execute(exhibitions_trigger)
-mydb.commit()
+insert_query = """
+    INSERT INTO contest_board (
+    contest_title, contest_start
+    , contest_end, contest_contents
+    , contest_file
+    ) VALUES (%s, %s, %s, %s, %s)
+"""
+
+cursor = mydb.cursor()
+
+for index, row in myDF.iterrows():
+    data = (
+        row['title'],
+        row['start_date'],
+        row['end_date'],
+        row['content'],
+        row['img']
+    )
+    cursor.execute(insert_query, data)
+    mydb.commit()
+
 cursor.close()
 mydb.close()

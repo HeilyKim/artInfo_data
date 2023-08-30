@@ -1,25 +1,27 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-from preProcessing import cleaned,getDates
+from final.preProcessing import getDates,cleaned
 title = []
 contents = []
 date = []
 img = []
+cate = []
 def doGet(ahref):
     error = []
     try:
         pimg = []
+        pcontent = []
         text = requests.get(f"https://neolook.com{ahref}")
-        # text.encoding = 'ms949'
         soup = BeautifulSoup(text.text, "html.parser",from_encoding='cp949')
         aTitle = soup.select_one('body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > h1')
         aTitle = aTitle.text
         aDate = soup.select_one('body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document > div > h2 > span:nth-child(3)')
         aDate = aDate.text
-        aContent = soup.select_one(
-            "body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div.mt-9.document")
-        aContent = aContent.text
+        for p in soup.find_all('p'):
+            if 'class' not in p.attrs:
+                pcontent.append(p.get_text())
+        merged_text = '\n'.join(pcontent)
         for i in soup.find_all('img'):
             src = i.get('src')
             if "advertisements" in src or src.endswith(".gif"):
@@ -33,9 +35,10 @@ def doGet(ahref):
     finally:
         if error is not None and len(error) == 0:
             title.append(aTitle)
-            contents.append(aContent)
+            contents.append(merged_text)
             date.append(aDate)
             img.append(merged_img)
+            cate.append("개인전")
         else:
             error = None
 
@@ -44,11 +47,9 @@ text.encoding='ms949'
 
 soup = BeautifulSoup(text.text, 'html.parser')
 
-# Replace "div_xpath" with the provided XPath for the div tag
 div_element = soup.select_one('body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div:nth-child(6)')
 
 if div_element:
-    # Find the <ul> tag inside the <div> element
     ul_tag = div_element.select_one('body > div.flex > div.z-\[60\].flex-1.md\:ml-40.min-w-0 > div > div.px-1.md\:px-0 > div:nth-child(6) > ul')
 
     if ul_tag:
@@ -68,19 +69,11 @@ if div_element:
         print("no ul tag")
 else:
     print("no such div tag")
-# print(len(title))
-# print(len(artist))
-# print(len(date))
-# print(len(contents))
-# print(len(location))
-# print(len(region))
-# # print(contents)
-# print(len(img))
-myInfo ={'title':title,'date':date,'content':contents,'img':img}
+
+myInfo ={'title':title,'date':date,'content':contents,'img':img,'cate':cate}
 myDF = pd.DataFrame(myInfo)
 myDF['content'] = myDF['content'].apply(lambda x: x[0].strip() if isinstance(x, list) else x)
 myDF['content'] = myDF['content'].apply(lambda x: x.strip()).apply(cleaned)
 myDF[['start_date', 'end_date']] = myDF['date'].apply(getDates).apply(pd.Series)
 myDF.drop(columns=['date'], inplace=True)
-myDF.to_csv('upso.csv',index=False, encoding='utf-8-sig')
-print(myDF.head(2))
+
